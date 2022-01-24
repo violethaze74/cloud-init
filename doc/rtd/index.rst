@@ -68,7 +68,7 @@ Having trouble? We would like to help!
    :titlesonly:
    :caption: Development
 
-   topics/hacking.rst
+   topics/contributing.rst
    topics/code_review.rst
    topics/security.rst
    topics/debugging.rst
@@ -78,6 +78,5 @@ Having trouble? We would like to help!
    topics/docs.rst
    topics/testing.rst
    topics/integration_tests.rst
-   topics/cloud_tests.rst
 
 .. vi: textwidth=79

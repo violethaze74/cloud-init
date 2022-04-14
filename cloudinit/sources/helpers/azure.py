@@ -25,7 +25,6 @@ from cloudinit import (
     version,
 )
 from cloudinit.net import dhcp
-from cloudinit.net.dhcp import EphemeralDHCPv4
 from cloudinit.reporting import events
 from cloudinit.settings import CFG_BUILTIN
 
@@ -1241,23 +1240,6 @@ def dhcp_log_cb(out, err):
     report_diagnostic_event(
         "dhclient error stream: %s" % err, logger_func=LOG.debug
     )
-
-
-class EphemeralDHCPv4WithReporting(EphemeralDHCPv4):
-    def __init__(self, reporter, iface=None):
-        self.reporter = reporter
-
-        super(EphemeralDHCPv4WithReporting, self).__init__(
-            iface=iface, dhcp_log_func=dhcp_log_cb
-        )
-
-    def __enter__(self):
-        with events.ReportEventStack(
-            name="obtain-dhcp-lease",
-            description="obtain dhcp lease",
-            parent=self.reporter,
-        ):
-            return super(EphemeralDHCPv4WithReporting, self).__enter__()
 
 
 # vi: ts=4 expandtab

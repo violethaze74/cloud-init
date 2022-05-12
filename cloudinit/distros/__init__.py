@@ -16,7 +16,7 @@ import stat
 import string
 import urllib.parse
 from io import StringIO
-from typing import Any, Mapping  # noqa: F401
+from typing import Any, Mapping, Type
 
 from cloudinit import importer
 from cloudinit import log as logging
@@ -26,7 +26,7 @@ from cloudinit.features import ALLOW_EC2_MIRRORS_ON_NON_AWS_INSTANCE_TYPES
 from cloudinit.net import activators, eni, network_state, renderers
 from cloudinit.net.network_state import parse_net_config_data
 
-from .networking import LinuxNetworking
+from .networking import LinuxNetworking, Networking
 
 # Used when a cloud-config module can be run on all cloud-init distibutions.
 # The value 'all' is surfaced in module documentation for distro support.
@@ -76,9 +76,9 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
     hostname_conf_fn = "/etc/hostname"
     tz_zone_dir = "/usr/share/zoneinfo"
     init_cmd = ["service"]  # systemctl, service etc
-    renderer_configs = {}  # type: Mapping[str, Mapping[str, Any]]
+    renderer_configs: Mapping[str, Mapping[str, Any]] = {}
     _preferred_ntp_clients = None
-    networking_cls = LinuxNetworking
+    networking_cls: Type[Networking] = LinuxNetworking
     # This is used by self.shutdown_command(), and can be overridden in
     # subclasses
     shutdown_options_map = {"halt": "-H", "poweroff": "-P", "reboot": "-r"}
@@ -91,7 +91,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
         self._paths = paths
         self._cfg = cfg
         self.name = name
-        self.networking = self.networking_cls()
+        self.networking: Networking = self.networking_cls()
 
     def _unpickle(self, ci_pkl_version: int) -> None:
         """Perform deserialization fixes for Distro."""
@@ -252,9 +252,6 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
         else:
             LOG.debug("Not bringing up newly configured network interfaces")
         return False
-
-    def apply_network_config_names(self, netconfig):
-        net.apply_network_config_names(netconfig)
 
     @abc.abstractmethod
     def apply_locale(self, locale, out_fn=None):
@@ -529,6 +526,8 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 if not util.is_group(group):
                     self.create_group(group)
                     LOG.debug("created group '%s' for user '%s'", group, name)
+        if "uid" in kwargs.keys():
+            kwargs["uid"] = str(kwargs["uid"])
 
         # Check the values and create the command
         for key, val in sorted(kwargs.items()):
@@ -851,7 +850,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
             args.append(message)
         return args
 
-    def manage_service(self, action, service):
+    def manage_service(self, action: str, service: str):
         """
         Perform the requested action on a service. This handles the common
         'systemctl' and 'service' cases and may be overridden in subclasses
@@ -868,6 +867,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 "restart": ["restart", service],
                 "reload": ["reload-or-restart", service],
                 "try-reload": ["reload-or-try-restart", service],
+                "status": ["status", service],
             }
         else:
             cmds = {
@@ -877,6 +877,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 "restart": [service, "restart"],
                 "reload": [service, "restart"],
                 "try-reload": [service, "restart"],
+                "status": [service, "status"],
             }
         cmd = list(init_cmd) + list(cmds[action])
         return subp.subp(cmd, capture=True)
@@ -1062,7 +1063,7 @@ def _get_arch_package_mirror_info(package_mirrors, arch):
     return default
 
 
-def fetch(name):
+def fetch(name) -> Type[Distro]:
     locs, looked_locs = importer.find_module(name, ["", __name__], ["Distro"])
     if not locs:
         raise ImportError(

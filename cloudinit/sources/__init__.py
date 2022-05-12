@@ -13,7 +13,8 @@ import copy
 import json
 import os
 from collections import namedtuple
-from typing import Dict, List  # noqa: F401
+from enum import Enum, unique
+from typing import Dict, List, Tuple
 
 from cloudinit import dmi, importer
 from cloudinit import log as logging
@@ -67,13 +68,22 @@ CLOUD_ID_REGION_PREFIX_MAP = {
     "china": ("azure-china", lambda c: c == "azure"),  # only change azure
 }
 
-# NetworkConfigSource represents the canonical list of network config sources
-# that cloud-init knows about.  (Python 2.7 lacks PEP 435, so use a singleton
-# namedtuple as an enum; see https://stackoverflow.com/a/6971002)
-_NETCFG_SOURCE_NAMES = ("cmdline", "ds", "system_cfg", "fallback", "initramfs")
-NetworkConfigSource = namedtuple("NetworkConfigSource", _NETCFG_SOURCE_NAMES)(
-    *_NETCFG_SOURCE_NAMES
-)
+
+@unique
+class NetworkConfigSource(Enum):
+    """
+    Represents the canonical list of network config sources that cloud-init
+    knows about.
+    """
+
+    CMD_LINE = "cmdline"
+    DS = "ds"
+    SYSTEM_CFG = "system_cfg"
+    FALLBACK = "fallback"
+    INITRAMFS = "initramfs"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class DatasourceUnpickleUserDataError(Exception):
@@ -177,11 +187,11 @@ class DataSource(CloudInitPickleMixin, metaclass=abc.ABCMeta):
     # configuration will be used without considering any that follow.)  This
     # should always be a subset of the members of NetworkConfigSource with no
     # duplicate entries.
-    network_config_sources = (
-        NetworkConfigSource.cmdline,
-        NetworkConfigSource.initramfs,
-        NetworkConfigSource.system_cfg,
-        NetworkConfigSource.ds,
+    network_config_sources: Tuple[NetworkConfigSource, ...] = (
+        NetworkConfigSource.CMD_LINE,
+        NetworkConfigSource.INITRAMFS,
+        NetworkConfigSource.SYSTEM_CFG,
+        NetworkConfigSource.DS,
     )
 
     # read_url_params
@@ -303,6 +313,9 @@ class DataSource(CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 "_beta_keys": ["subplatform"],
                 "availability-zone": availability_zone,
                 "availability_zone": availability_zone,
+                "cloud_id": canonical_cloud_id(
+                    self.cloud_name, self.region, self.platform_type
+                ),
                 "cloud-name": self.cloud_name,
                 "cloud_name": self.cloud_name,
                 "distro": sysinfo["dist"][0],
@@ -408,6 +421,16 @@ class DataSource(CloudInitPickleMixin, metaclass=abc.ABCMeta):
         json_sensitive_file = os.path.join(
             self.paths.run_dir, INSTANCE_JSON_SENSITIVE_FILE
         )
+        cloud_id = instance_data["v1"].get("cloud_id", "none")
+        cloud_id_file = os.path.join(self.paths.run_dir, "cloud-id")
+        util.write_file(f"{cloud_id_file}-{cloud_id}", f"{cloud_id}\n")
+        if os.path.exists(cloud_id_file):
+            prev_cloud_id_file = os.path.realpath(cloud_id_file)
+        else:
+            prev_cloud_id_file = cloud_id_file
+        util.sym_link(f"{cloud_id_file}-{cloud_id}", cloud_id_file, force=True)
+        if prev_cloud_id_file != cloud_id_file:
+            util.del_file(prev_cloud_id_file)
         write_json(json_sensitive_file, processed_data, mode=0o600)
         json_file = os.path.join(self.paths.run_dir, INSTANCE_JSON_FILE)
         # World readable
@@ -879,7 +902,9 @@ def normalize_pubkey_data(pubkey_data):
     return keys
 
 
-def find_source(sys_cfg, distro, paths, ds_deps, cfg_list, pkg_list, reporter):
+def find_source(
+    sys_cfg, distro, paths, ds_deps, cfg_list, pkg_list, reporter
+) -> Tuple[DataSource, str]:
     ds_list = list_sources(cfg_list, ds_deps, pkg_list)
     ds_names = [type_utils.obj_name(f) for f in ds_list]
     mode = "network" if DEP_NETWORK in ds_deps else "local"

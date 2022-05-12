@@ -9,27 +9,6 @@
 # This file is part of cloud-init. See LICENSE file for license information.
 
 import sys
-import typing
-
-# annotations add value for development, but don't break old versions
-# pyver: 3.5 -> 3.8
-# pylint: disable=E1101
-if sys.version_info >= (3, 8) and hasattr(typing, "TypeDict"):
-    MetaSchema = typing.TypedDict(
-        "MetaSchema",
-        {
-            "name": str,
-            "id": str,
-            "title": str,
-            "description": str,
-            "distros": typing.List[str],
-            "examples": typing.List[str],
-            "frequency": str,
-        },
-    )
-else:
-    MetaSchema = dict
-# pylint: enable=E1101
 
 
 def import_module(module_name):

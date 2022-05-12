@@ -263,7 +263,6 @@ EC2 instance:
      "[handler_cloudLogHandler]\nclass=handlers.SysLogHandler\nlevel=DEBUG\nformatter=simpleFormatter\nargs=(\"/dev/log\", handlers.SysLogHandler.LOG_USER)\n"
     ],
     "cloud_config_modules": [
-     "emit_upstart",
      "snap",
      "ssh-import-id",
      "locale",
@@ -655,4 +654,4 @@ see only redacted values.
   instance booted on your favorite cloud. See :ref:`cli_devel` for more
   information.
 
-.. vi: textwidth=78
+.. vi: textwidth=79

@@ -6,14 +6,14 @@ from textwrap import dedent
 
 from cloudinit import log as logging
 from cloudinit import subp, util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
+from cloudinit.config.schema import MetaSchema, get_meta_doc
 from cloudinit.settings import PER_INSTANCE
 
 UA_URL = "https://ubuntu.com/advantage"
 
 distros = ["ubuntu"]
 
-meta = {
+meta: MetaSchema = {
     "id": "cc_ubuntu_advantage",
     "name": "Ubuntu Advantage",
     "title": "Configure Ubuntu Advantage support services",
@@ -28,7 +28,7 @@ meta = {
 
         Note that when enabling FIPS or FIPS updates you will need to schedule
         a reboot to ensure the machine is running the FIPS-compliant kernel.
-        See :ref:`Power State Change` for information on how to configure
+        See `Power State Change`_ for information on how to configure
         cloud-init to perform this reboot.
         """
     ),
@@ -49,7 +49,7 @@ meta = {
         # only fips and esm services. Services will only be enabled if
         # the environment supports said service. Otherwise warnings will
         # be logged for incompatible services specified.
-        ubuntu-advantage:
+        ubuntu_advantage:
           token: <ua_contract_token>
           enable:
           - fips
@@ -63,7 +63,7 @@ meta = {
         # completed.
         power_state:
           mode: reboot
-        ubuntu-advantage:
+        ubuntu_advantage:
           token: <ua_contract_token>
           enable:
           - fips
@@ -73,29 +73,7 @@ meta = {
     "frequency": PER_INSTANCE,
 }
 
-schema = {
-    "type": "object",
-    "properties": {
-        "ubuntu_advantage": {
-            "type": "object",
-            "properties": {
-                "enable": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                },
-                "token": {
-                    "type": "string",
-                    "description": "A contract token obtained from %s."
-                    % UA_URL,
-                },
-            },
-            "required": ["token"],
-            "additionalProperties": False,
-        }
-    },
-}
-
-__doc__ = get_meta_doc(meta, schema)  # Supplement python help()
+__doc__ = get_meta_doc(meta)
 
 LOG = logging.getLogger(__name__)
 
@@ -190,7 +168,6 @@ def handle(name, cfg, cloud, log, args):
             name,
         )
         return
-    validate_cloudconfig_schema(cfg, schema)
     if "commands" in ua_section:
         msg = (
             'Deprecated configuration "ubuntu-advantage: commands" provided.'

@@ -11,6 +11,7 @@
 import copy
 import os
 import time
+from typing import List
 
 from cloudinit import dmi
 from cloudinit import log as logging
@@ -67,7 +68,11 @@ class DataSourceEc2(sources.DataSource):
     # Priority ordered list of additional metadata versions which will be tried
     # for extended metadata content. IPv6 support comes in 2016-09-02.
     # Tags support comes in 2021-03-23.
-    extended_metadata_versions = ["2021-03-23", "2018-09-24", "2016-09-02"]
+    extended_metadata_versions: List[str] = [
+        "2021-03-23",
+        "2018-09-24",
+        "2016-09-02",
+    ]
 
     # Setup read_url parameters per get_url_params.
     url_max_wait = 120
@@ -222,7 +227,7 @@ class DataSourceEc2(sources.DataSource):
         else:
             return self.metadata["instance-id"]
 
-    def _maybe_fetch_api_token(self, mdurls, timeout=None, max_wait=None):
+    def _maybe_fetch_api_token(self, mdurls):
         """Get an API token for EC2 Instance Metadata Service.
 
         On EC2. IMDS will always answer an API token, unless

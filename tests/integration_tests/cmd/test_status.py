@@ -13,8 +13,12 @@ def _wait_for_cloud_init(client: IntegrationInstance):
     last_exception = None
     for _ in range(30):
         try:
-            result = client.execute("cloud-init status --long")
-            if result and result.ok:
+            result = client.execute("cloud-init status")
+            if (
+                result
+                and result.ok
+                and ("running" not in result or "not run" not in result)
+            ):
                 return result
         except Exception as e:
             last_exception = e
@@ -49,7 +53,7 @@ def test_wait_when_no_datasource(session_cloud: IntegrationCloud, setup_image):
         }
     ) as client:
         # We know this will be an LXD instance due to our pytest mark
-        client.instance.execute_via_ssh = False  # type: ignore
+        client.instance.execute_via_ssh = False  # pyright: ignore
         # No ubuntu user if cloud-init didn't run
         client.instance.username = "root"
         # Jammy and above will use LXD datasource by default
@@ -61,5 +65,4 @@ def test_wait_when_no_datasource(session_cloud: IntegrationCloud, setup_image):
             _remove_nocloud_dir_and_reboot(client)
         status_out = _wait_for_cloud_init(client).stdout.strip()
         assert "status: disabled" in status_out
-        assert "Cloud-init disabled by cloud-init-generator" in status_out
         assert client.execute("cloud-init status --wait").ok

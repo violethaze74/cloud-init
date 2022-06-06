@@ -1819,11 +1819,6 @@
                   {"type": "array", "items": {"type": "string"}}
                 ]
               }
-            },
-            "squashfuse_in_container": {
-              "type": "boolean",
-              "default": false,
-              "description": "DEPRECATED: This key is no longer needed and will be removed in a future version of cloud-init."
             }
           }
         }
@@ -1886,7 +1881,7 @@
           "type": "object",
           "description": "A dictionary entries for the public and private host keys of each desired key type. Entries in the ``ssh_keys`` config dict should have keys in the format ``<key type>_private``, ``<key type>_public``, and, optionally, ``<key type>_certificate``, e.g. ``rsa_private: <key>``, ``rsa_public: <key>``, and ``rsa_certificate: <key>``. Not all key types have to be specified, ones left unspecified will not be used. If this config option is used, then separate keys will not be automatically generated. In order to specify multiline private host keys and certificates, use yaml multiline syntax.",
           "patternProperties": {
-            "^(dsa|ecdsa|ecdsa-sk|ed25519|ed25519-sk|rsa)_(public|private|certificate)$": {
+            "^(dsa|ecdsa|ed25519|rsa)_(public|private|certificate)$": {
               "label": "<key_type>",
               "type": "string"
             }
@@ -1909,11 +1904,11 @@
         "ssh_genkeytypes": {
           "type": "array",
           "description": "The SSH key types to generate. Default: ``[rsa, dsa, ecdsa, ed25519]``",
-          "default": ["dsa", "ecdsa", "ecdsa-sk", "ed25519", "ed25519-sk", "rsa"],
+          "default": ["dsa", "ecdsa", "ed25519", "rsa"],
           "minItems": 1,
           "items": {
             "type": "string",
-            "enum": ["dsa", "ecdsa", "ecdsa-sk", "ed25519", "ed25519-sk", "rsa"]
+            "enum": ["dsa", "ecdsa", "ed25519", "rsa"]
           }
         },
         "disable_root": {
@@ -2094,7 +2089,7 @@
               },
               "content": {
                 "type": "string",
-                "default": "",
+                "default": "''",
                 "description": "Optional content to write to the provided ``path``. When content is present and encoding is not 'text/plain', decode the content prior to writing. Default: ``''``"
               },
               "owner": {
@@ -2104,13 +2099,13 @@
               },
               "permissions": {
                 "type": "string",
-                "default": "0o644",
+                "default": "'0o644'",
                 "description": "Optional file permissions to set on ``path`` represented as an octal string '0###'. Default: ``0o644``"
               },
               "encoding": {
                 "type": "string",
                 "default": "text/plain",
-                "enum": ["gz", "gzip", "gz+base64", "gzip+base64", "gz+b64", "gzip+b64", "b64", "base64"],
+                "enum": ["gz", "gzip", "gz+base64", "gzip+base64", "gz+b64", "gzip+b64", "b64", "base64", "text/plain"],
                 "description": "Optional encoding type of the content. Default is ``text/plain`` and no content decoding is performed. Supported encoding types are: gz, gzip, gz+base64, gzip+base64, gz+b64, gzip+b64, b64, base64"
               },
               "append": {

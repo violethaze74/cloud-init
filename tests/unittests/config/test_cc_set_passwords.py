@@ -128,34 +128,88 @@ class TestHandleSSHPwauth:
                 assert m_subp.call_count == n
 
     @pytest.mark.parametrize(
-        "raised_error,warning_log,debug_log,update_ssh_call_count",
+        [
+            "uses_systemd",
+            "raised_error",
+            "warning_log",
+            "debug_logs",
+            "update_ssh_call_count",
+        ],
         (
             (
+                True,
                 subp.ProcessExecutionError(
                     stderr="Service is not running.", exit_code=3
                 ),
-                "Writing config 'ssh_pwauth: True'. SSH service"
-                " 'ssh' will not be restarted because it is stopped.",
-                "Not restarting SSH service: service is stopped.",
+                None,
+                [
+                    "Writing config 'ssh_pwauth: True'. SSH service"
+                    " 'ssh' will not be restarted because it is stopped.",
+                    "Not restarting SSH service: service is stopped.",
+                ],
                 1,
             ),
             (
+                True,
                 subp.ProcessExecutionError(
                     stderr="Service is not installed.", exit_code=4
                 ),
                 "Ignoring config 'ssh_pwauth: True'. SSH service 'ssh' is"
                 " not installed.",
-                None,
+                [],
                 0,
             ),
             (
+                True,
                 subp.ProcessExecutionError(
                     stderr="Service is not available.", exit_code=2
                 ),
                 "Ignoring config 'ssh_pwauth: True'. SSH service 'ssh'"
                 " is not available. Error: ",
-                None,
+                [],
                 0,
+            ),
+            (
+                False,
+                subp.ProcessExecutionError(
+                    stderr="Service is not available.", exit_code=25
+                ),
+                None,
+                [
+                    "Writing config 'ssh_pwauth: True'. SSH service"
+                    " 'ssh' will not be restarted because it is not running"
+                    " or not available.",
+                    "Not restarting SSH service: service is stopped.",
+                ],
+                1,
+            ),
+            (
+                False,
+                subp.ProcessExecutionError(
+                    stderr="Service is not available.", exit_code=3
+                ),
+                None,
+                [
+                    "Writing config 'ssh_pwauth: True'. SSH service"
+                    " 'ssh' will not be restarted because it is not running"
+                    " or not available.",
+                    "Not restarting SSH service: service is stopped.",
+                ],
+                1,
+            ),
+            (
+                False,
+                subp.ProcessExecutionError(
+                    stderr="Service is not available.", exit_code=4
+                ),
+                None,
+                [
+                    "Writing config 'ssh_pwauth: True'. SSH service"
+                    " 'ssh' will not be restarted because it is not running"
+                    " or not available.",
+                    "Not restarting SSH service: service is stopped.",
+                ],
+                1,
             ),
         ),
     )
@@ -165,28 +219,34 @@ class TestHandleSSHPwauth:
         self,
         m_subp,
         m_update_ssh_config,
+        uses_systemd,
         raised_error,
         warning_log,
-        debug_log,
+        debug_logs,
         update_ssh_call_count,
         caplog,
     ):
         """Write config but don't restart SSH service when not running."""
         cloud = get_cloud("ubuntu")
         cloud.distro.manage_service = mock.Mock(side_effect=raised_error)
+        cloud.distro.uses_systemd = mock.Mock(return_value=uses_systemd)
 
         setpass.handle_ssh_pwauth(True, cloud.distro)
         logs_by_level = {logging.WARNING: [], logging.DEBUG: []}
         for _, level, msg in caplog.record_tuples:
             logs_by_level[level].append(msg)
-        assert warning_log in "\n".join(logs_by_level[logging.WARNING])
-        if debug_log:
+        if warning_log:
+            assert warning_log in "\n".join(
+                logs_by_level[logging.WARNING]
+            ), logs_by_level
+        for debug_log in debug_logs:
             assert debug_log in logs_by_level[logging.DEBUG]
         assert [
             mock.call("status", "ssh")
         ] == cloud.distro.manage_service.call_args_list
         assert m_update_ssh_config.call_count == update_ssh_call_count
-        m_subp.assert_not_called()
+        assert m_subp.call_count == 0
+        assert cloud.distro.uses_systemd.call_count == 1
 
 
 @pytest.mark.usefixtures("mock_uses_systemd")

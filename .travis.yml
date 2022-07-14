@@ -130,16 +130,6 @@ matrix:
             TOXENV=lowest-supported
             PYTEST_ADDOPTS=-v  # List all tests run by pytest
           dist: bionic
-        - python: 3.6
-          env: TOXENV=flake8
-        - python: 3.6
-          env: TOXENV=mypy
-        - python: 3.6
-          env: TOXENV=pylint
-        - python: 3.6
-          env: TOXENV=black
-        - python: 3.6
-          env: TOXENV=isort
         - python: 3.7
           env: TOXENV=doc
           install:
@@ -150,6 +140,7 @@ matrix:
             - make check_spelling && tox
         # Test all supported Python versions (but at the end, so we schedule
         # longer-running jobs first)
+        - python: 3.11-dev
         - python: "3.10"
         - python: 3.9
         - python: 3.8

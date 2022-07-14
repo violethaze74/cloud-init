@@ -321,6 +321,25 @@ OS_RELEASE_PHOTON = """\
         BUG_REPORT_URL="https://github.com/vmware/photon/issues"
 """
 
+OS_RELEASE_OPENMANDRIVA = dedent(
+    """\
+    NAME="OpenMandriva Lx"\n
+    VERSION="4.90 (Nickel) Cooker"\n
+    ID="openmandriva"\n
+    VERSION_ID="4.90"\n
+    PRETTY_NAME="OpenMandriva Lx 4.90 (Nickel) Cooker"\n
+    BUILD_ID="20220606.19"\n
+    VERSION_CODENAME="nickel"\n
+    ANSI_COLOR="1;43"\n
+    LOGO="openmandriva"\n
+    CPE_NAME="cpe:/o:openmandriva:openmandriva_lx:4.90"\n
+    HOME_URL="http://openmandriva.org/"\n
+    BUG_REPORT_URL="http://issues.openmandriva.org/"\n
+    SUPPORT_URL="https://forum.openmandriva.org"\n
+    PRIVACY_POLICY_URL="https://www.openmandriva.org/tos"\n
+"""
+)
+
 
 class FakeCloud(object):
     def __init__(self, hostname, fqdn):
@@ -754,9 +773,7 @@ class TestUdevadmSettle(CiTestCase):
 @mock.patch("os.path.exists")
 class TestGetLinuxDistro(CiTestCase):
     def setUp(self):
-        # python2 has no lru_cache, and therefore, no cache_clear()
-        if hasattr(util.get_linux_distro, "cache_clear"):
-            util.get_linux_distro.cache_clear()
+        util.get_linux_distro.cache_clear()
 
     @classmethod
     def os_release_exists(self, path):
@@ -1026,6 +1043,14 @@ class TestGetLinuxDistro(CiTestCase):
         m_path_exists.side_effect = TestGetLinuxDistro.os_release_exists
         dist = util.get_linux_distro()
         self.assertEqual(("photon", "4.0", "VMware Photon OS/Linux"), dist)
+
+    @mock.patch(M_PATH + "load_file")
+    def test_get_linux_openmandriva(self, m_os_release, m_path_exists):
+        """Verify we get the correct name and machine arch on OpenMandriva"""
+        m_os_release.return_value = OS_RELEASE_OPENMANDRIVA
+        m_path_exists.side_effect = TestGetLinuxDistro.os_release_exists
+        dist = util.get_linux_distro()
+        self.assertEqual(("openmandriva", "4.90", "nickel"), dist)
 
     @mock.patch("platform.system")
     @mock.patch("platform.dist", create=True)

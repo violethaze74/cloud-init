@@ -110,14 +110,14 @@ class TestCLI(test_helpers.FilesystemMockingTestCase):
 
     def test_no_arguments_shows_error_message(self):
         exit_code = self._call_main()
-        missing_subcommand_message = [
-            "too few arguments",  # python2.7 msg
-            "the following arguments are required: subcommand",  # python3 msg
-        ]
+        missing_subcommand_message = (
+            "the following arguments are required: subcommand"
+        )
         error = self.stderr.getvalue()
-        matches = [msg in error for msg in missing_subcommand_message]
-        self.assertTrue(
-            any(matches), "Did not find error message for missing subcommand"
+        self.assertIn(
+            missing_subcommand_message,
+            error,
+            "Did not find error message for missing subcommand",
         )
         self.assertEqual(2, exit_code)
 
@@ -260,8 +260,8 @@ class TestCLI(test_helpers.FilesystemMockingTestCase):
                 "**Supported distros:** all",
                 "**Supported distros:** almalinux, alpine, centos, "
                 "cloudlinux, debian, eurolinux, fedora, miraclelinux, "
-                "openEuler, opensuse, photon, rhel, rocky, sles, ubuntu, "
-                "virtuozzo",
+                "openEuler, openmandriva, opensuse, photon, rhel, rocky, "
+                "sles, ubuntu, virtuozzo",
                 "**Config schema**:\n    **resize_rootfs:** "
                 "(``true``/``false``/``noblock``)",
                 "**Examples**::\n\n    runcmd:\n        - [ ls, -l, / ]\n",
